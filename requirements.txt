@@ -1,0 +1,5 @@
+aiohttp==3.14.3
+rich==15.0.0
+# This pinned BlinkPy fork contains the live-view relay behavior used by
+# blinkbridge/live.py. Review and update the commit deliberately.
+blinkpy @ git+https://github.com/endoftheline818/blinkpy.git@10004511dbabe0687b0f329e362a7900d3d78838
