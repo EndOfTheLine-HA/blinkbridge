@@ -1,0 +1,37 @@
+{
+    "still_video_duration": 0.5,
+    "paths": {
+      "videos": "/working",
+      "concat": "/working",
+      "config": "/config"
+    },
+    "cameras": {
+      "enabled": [],
+      "disabled": [],
+      "live": [],
+      "live_handover": [],
+      "live_handover_after": 330,
+      "live_max_failures": 5,
+      "live_fallback_minutes": 30,
+      "max_failures": 3,
+      "restart_delay_seconds": 60,
+      "stable_seconds": 600,
+      "pending_retry_seconds": 300
+    },
+    "blink": {
+      "login": {
+        "username": "",
+        "password": ""
+      },
+      "history_days": 90,
+      "poll_interval": 60,
+      "refresh_minutes": 0,
+      "refresh_cameras": [],
+      "restart_after_error_seconds": 120
+    },
+    "rtsp_server": {
+      "address": "mediamtx",
+      "port": 8554
+    },
+    "log_level": "INFO"
+}

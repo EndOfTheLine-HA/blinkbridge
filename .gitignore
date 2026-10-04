@@ -1,1 +1,29 @@
-config/.cred.json
+# Runtime configuration and authentication state. Only the example is public.
+config/*
+!config/config.example.json
+.env
+.env.*
+!.env.example
+
+# Python and test artifacts.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.venv/
+
+# Runtime media and local operator artifacts.
+working/
+*.mp4
+*.jpg
+*.concat
+*.part
+*.bak
+*.bak-*
+*.codex-candidate
+
+# Local editor and OS files.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

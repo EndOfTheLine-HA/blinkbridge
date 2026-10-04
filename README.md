@@ -1,42 +1,96 @@
-# blinkbridge
+# BlinkBridge release candidate
 
-**Notes**: 
+BlinkBridge turns Blink camera clips into persistent RTSP streams by publishing
+each new clip and then looping its last frame through FFmpeg and MediaMTX. This
+branch also contains an optional, experimental Blink Live View relay.
 
-* There is an issue related to local storage systems; please see issue [#1](https://github.com/roger-/blinkbridge/issues/1) for a temporary fix until it's resolved. 
-* Disable the "Photo Capture" feature in the Blink app for each supported camera to work around an issue where photos can prevent videos from being recognized by BlinkPy.
+> **Distribution is not cleared.** The upstream
+> [`roger-/blinkbridge`](https://github.com/roger-/blinkbridge) repository has
+> no explicit license. This private release candidate must not be published or
+> redistributed until the upstream author grants suitable permission or adds a
+> license. See [LICENSE_STATUS.md](LICENSE_STATUS.md).
 
----
+This project is unofficial and is not affiliated with Blink or Amazon. Live
+View and aggressive polling can increase battery use, load Blink's service,
+or trigger account throttling. The example uses a 60-second poll interval.
 
-blinkbridge is a tool for creating an RTSP stream from a [Blink camera](https://blinkforhome.com/) using [FFmpeg](https://ffmpeg.org/) and [MediaMTX](https://github.com/bluenviron/mediamtx). Blink cameras are battery operated and don't have native RTSP support, so this tool uses the [BlinkPy](https://github.com/fronzbot/blinkpy) Python library to download clips every time motion is detected and then creates an RTSP stream from them. 
+## What differs from upstream
 
-Due to the slow polling rate of BlinkPy, there will be a **delay of up to ~30 seconds** between when a motion is detected and when the RTSP stream updates (can be changed at risk of the Blink server banning you). The RTSP stream will persist the last recorded frame (i.e. a static video) until the next motion is detected.
+- Blink/network failures no longer tear down a still-running RTSP stream.
+- OAuth refresh tokens are saved atomically with owner-only permissions.
+- Missing clips and failed camera starts are retried without stopping the
+  monitor loop.
+- FFprobe and FFmpeg work has deadlines, and blocking still-frame work runs
+  outside the async event loop.
+- RTSP publishing uses TCP, failed streams have bounded restart behavior, and
+  stale still files are removed.
+- New clips missed by BlinkPy's motion flag can be recovered from the media
+  response already fetched by BlinkPy.
+- Optional Live View sessions can publish continuously, hand over before a
+  session expires, and fall back to clips after repeated failures.
+- Logs redact common tokens, passwords, and email addresses.
 
-Once the RTSP streams are available, you can use them in applications such as [Frigate NVR](https://github.com/blakeblackshear/frigate) (e.g. for better person detection) or [Scrypted](https://github.com/koush/scrypted) (e.g. for Homekit Secure Video support).
+## Private test setup
 
-# How it works
+1. Copy the example to the ignored runtime path:
 
-1. blinkbridge downloads the latest clip for each enabled camera from the Blink server
-2. FFmpeg extracts the last frame from each clip and creates a short still video (~0.5s) from it 
-3. The still video is published on a loop to MediaMTX (using [FFMpeg's concat demuxer](https://trac.ffmpeg.org/wiki/Concatenate#demuxer))
-4. When motion is detected, the new clip is downloaded and published
-5. A still video from the last frame of the new clip is then published on a loop
+   ```sh
+   cp config/config.example.json config/config.json
+   ```
 
-# Usage
+2. Put your Blink username and password in the untracked `config/config.json`.
+   Alternatively, set `BLINK_USERNAME` and `BLINK_PASSWORD` in an untracked
+   `.env` file. Docker environment values remain visible to local Docker
+   administrators, so neither option protects against a host administrator.
 
-1. Download `compose.yaml` from this repo and modify accordingly
-2. Download `config/config.json`, save to `./config/` and modify accordingly (be sure to enter your Blink login creditials)
-3. Run `docker compose run blinkbridge` and enter your Blink verification code when prompted (this only has to be done once and will be saved in `config/.cred.json`). Exit with CTRL+c
-4. Run `docker compose up` to start the service. The RTSP URLs will be printed to the console.
+3. Keep `cameras.live` empty for clip/still mode. To test Live View, list only
+   the exact camera names you intend to keep awake. `cameras.live_handover`
+   enables overlapping renewals and should be introduced cautiously.
 
-# TODO
+4. Build and perform the one-time interactive login:
 
-- [ ] Better error handling
-- [ ] Cleanup code
-- [ ] Support FFmpeg hardware acceleration (e.g. QSV)
-- [ ] Process cameras in parallel and reduce latency
-- [ ] Add ONVIF server with motion events
+   ```sh
+   docker compose build
+   docker compose run --rm blinkbridge
+   ```
 
-# Related projects
+   Enter the verification code if prompted, then stop the process. The OAuth
+   state is written to ignored `config/.cred.json` with mode `0600`.
 
-* https://github.com/kaffetorsk/arlo-streamer
+5. Start the services:
 
+   ```sh
+   docker compose up -d
+   docker compose logs -f blinkbridge
+   ```
+
+The default RTSP publication is bound to `127.0.0.1:8554`. If a client on
+another machine must connect, set `BLINKBRIDGE_RTSP_BIND` deliberately and add
+MediaMTX authentication and firewall restrictions before exposing the port.
+
+## Configuration notes
+
+- `cameras.enabled`: empty means all cameras except `cameras.disabled`.
+- `cameras.live`: exact camera names that use the experimental Live View relay.
+- `cameras.live_handover`: Live View cameras that open the next session before
+  the current one ends.
+- `cameras.live_handover_after`: seconds before handover, or a mapping from
+  camera name to seconds.
+- `blink.refresh_minutes`: when nonzero, request a fresh clip after a camera
+  has been quiet this long. This sends recording commands and is disabled by
+  default.
+- `blink.refresh_cameras`: optional allowlist for those recording commands.
+
+## Validation
+
+Run the local unit and publication-hygiene checks with:
+
+```sh
+python -m pip install -r requirements-dev.txt
+ruff check blinkbridge tests scripts
+python -m unittest discover -s tests -v
+python scripts/check_public_tree.py
+```
+
+The checks do not contact Blink, start Live View, or validate real cameras.
+A private end-to-end trial is still required before any release.

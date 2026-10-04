@@ -1,20 +1,24 @@
 services:
   blinkbridge:
-    image: rogerdammit/blinkbridge
+    build: .
+    image: blinkbridge-local
+    restart: unless-stopped
     volumes:
       - ./config:/config
-      # path for temporary files (video clips, concat files, etc.)
-      - /tmp/blinkbridge:/working
-      # use below instead to use RAM instead of disk for temporary files
-      # - type: tmpfs
-      #   target: /working
-      #   tmpfs:
-      #     size: 52428800  # 50MB  
-    tty: true # for color logs
+    tmpfs:
+      - /working:size=64m,mode=0700
+    tty: true
     environment:
-      - BLINKBRIDGE_CONFIG=/config/config.json
+      BLINKBRIDGE_CONFIG: /config/config.json
+      BLINK_USERNAME: ${BLINK_USERNAME:-}
+      BLINK_PASSWORD: ${BLINK_PASSWORD:-}
+    depends_on:
+      - mediamtx
+
   mediamtx:
-    image: bluenviron/mediamtx
-    container_name: mediamtx
+    image: bluenviron/mediamtx:1.21.0
+    restart: unless-stopped
     ports:
-      - 8554:8554
+      # Loopback-only by default. Set BLINKBRIDGE_RTSP_BIND deliberately if
+      # another host must read the streams, and protect that exposure.
+      - "${BLINKBRIDGE_RTSP_BIND:-127.0.0.1}:8554:8554"
