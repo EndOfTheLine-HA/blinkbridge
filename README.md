@@ -4,11 +4,14 @@ BlinkBridge turns Blink camera clips into persistent RTSP streams by publishing
 each new clip and then looping its last frame through FFmpeg and MediaMTX. This
 branch also contains an optional, experimental Blink Live View relay.
 
-> **Distribution is not cleared.** The upstream
-> [`roger-/blinkbridge`](https://github.com/roger-/blinkbridge) repository has
-> no explicit license. This private release candidate must not be published or
-> redistributed until the upstream author grants suitable permission or adds a
-> license. See [LICENSE_STATUS.md](LICENSE_STATUS.md).
+This experimental fork builds on [Roger's BlinkBridge](https://github.com/roger-/blinkbridge)
+and is distributed under the [MIT License](LICENSE). Upstream granted written
+permission and added MIT licensing; its copyright line still contains unresolved
+placeholders, preserved verbatim. See [LICENSE_STATUS.md](LICENSE_STATUS.md).
+
+> **Experimental, unofficial Live View support.** Docker image builds and real-camera
+> end-to-end behavior have not been validated in this publication session. Run an
+> isolated trial before relying on this fork for Frigate or other consumers.
 
 This project is unofficial and is not affiliated with Blink or Amazon. Live
 View and aggressive polling can increase battery use, load Blink's service,
@@ -30,7 +33,7 @@ or trigger account throttling. The example uses a 60-second poll interval.
   session expires, and fall back to clips after repeated failures.
 - Logs redact common tokens, passwords, and email addresses.
 
-## Private test setup
+## Isolated test setup
 
 1. Copy the example to the ignored runtime path:
 
