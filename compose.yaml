@@ -8,6 +8,9 @@ services:
     tmpfs:
       - /working:size=64m,mode=0700
     tty: true
+    env_file:
+      - path: .env.speaker
+        required: false
     environment:
       BLINKBRIDGE_CONFIG: /config/config.json
       BLINK_USERNAME: ${BLINK_USERNAME:-}

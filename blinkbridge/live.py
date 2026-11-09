@@ -80,6 +80,7 @@ class LiveStreamServer:
         self.stream_name = stream_name
         self.stream_name_sanitized = sanitize_stream_name(stream_name)
         self.cam_manager = cam_manager
+        self.speaker_writer = None
         self.ffmpeg = None
         self.task = None
         self.gave_up = False
@@ -229,6 +230,9 @@ class LiveStreamServer:
         return s, chunk
 
     async def _feed(self, s, chunk: bytes) -> None:
+        self.speaker_writer = (
+            s.stream.target_writer if s.stream.target.scheme == "immis" else None
+        )
         s.received += len(chunk)
         await self._write(chunk)
         self._remember_params(chunk)
@@ -288,6 +292,7 @@ class LiveStreamServer:
                 await self._feed(s, chunk)
                 last_video = datetime.now()
         finally:
+            self.speaker_writer = None
             self._close(s)
             if handover is not None:
                 handover.cancel()

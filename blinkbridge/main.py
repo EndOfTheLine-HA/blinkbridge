@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import signal
 import sys
 from datetime import datetime, timedelta
@@ -19,6 +20,7 @@ class Application:
     def __init__(self):
         self.stream_servers = {}
         self.cam_manager = None
+        self.speaker_task = None
         self.running = False
         self.pending_cameras = set()
         self.datetime_pending_retry = datetime.now()
@@ -105,6 +107,11 @@ class Application:
                 continue
             ss.failure_count = 0
             ss.datetime_started = datetime.now()
+
+        if mqtt_host := os.getenv("BLINKBRIDGE_MQTT_HOST"):
+            from blinkbridge.speaker_mqtt import run
+
+            self.speaker_task = asyncio.create_task(run(self, mqtt_host))
 
         log.info("monitoring cameras for motion")
         while self.running:
@@ -241,6 +248,10 @@ class Application:
 
     async def close(self) -> None:
         self.running = False
+
+        if self.speaker_task:
+            self.speaker_task.cancel()
+            await asyncio.gather(self.speaker_task, return_exceptions=True)
 
         if self.cam_manager:
             await self.cam_manager.close()

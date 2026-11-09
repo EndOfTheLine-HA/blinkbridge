@@ -97,3 +97,29 @@ python scripts/check_public_tree.py
 
 The checks do not contact Blink, start Live View, or validate real cameras.
 A private end-to-end trial is still required before any release.
+
+## Optional camera speaker playback
+
+Use [Blink Camera Messages](https://github.com/EndOfTheLine-HA/blink-camera-messages)
+to play saved messages through cameras configured in `cameras.live`. Playback
+requires an active IMMI session. The bridge accepts one playback at a time
+and reports errors through MQTT.
+
+Create an untracked `.env.speaker` file alongside `compose.yaml` and rebuild
+and start BlinkBridge using Docker Compose. Example broker settings:
+
+```dotenv
+BLINKBRIDGE_MQTT_HOST=mqtt.example.net
+BLINKBRIDGE_MQTT_PORT=8883
+BLINKBRIDGE_MQTT_TLS=1
+BLINKBRIDGE_MQTT_USERNAME=blinkbridge
+BLINKBRIDGE_MQTT_PASSWORD=replace-me
+BLINKBRIDGE_MQTT_PREFIX=blinkbridge
+```
+
+Use the same broker as Home Assistant. Give trusted Home Assistant publishers
+access to `<prefix>/speaker/v1/discover` and `<prefix>/speaker/v1/play`.
+The bridge subscribes to those topics and publishes to
+`<prefix>/speaker/v1/result/+`. Allow about 2.2 MB per MQTT message. Use a
+distinct prefix for each bridge. Omit `BLINKBRIDGE_MQTT_HOST` to keep speaker
+requests disabled.
