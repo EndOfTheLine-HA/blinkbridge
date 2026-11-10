@@ -1,17 +1,19 @@
-# BlinkBridge release candidate
+# BlinkBridge
 
 BlinkBridge turns Blink camera clips into persistent RTSP streams by publishing
 each new clip and then looping its last frame through FFmpeg and MediaMTX. This
-branch also contains an optional, experimental Blink Live View relay.
+fork also contains an optional, experimental Blink Live View relay and MQTT
+speaker playback for Blink Camera Messages.
 
 This experimental fork builds on [Roger's BlinkBridge](https://github.com/roger-/blinkbridge)
 and is distributed under the [MIT License](LICENSE). Upstream granted written
 permission and added MIT licensing; its copyright line still contains unresolved
 placeholders, preserved verbatim. See [LICENSE_STATUS.md](LICENSE_STATUS.md).
 
-> **Experimental, unofficial Live View support.** Docker image builds and real-camera
-> end-to-end behavior have not been validated in this publication session. Run an
-> isolated trial before relying on this fork for Frigate or other consumers.
+> **Experimental, unofficial Live View support.** Speaker playback was tested on
+> a Blink Mini through Home Assistant and MQTT, including a Frigate face-recognition
+> greeting, with video still reaching Frigate after playback. Other camera models
+> and configurations have not been verified. Test your setup before relying on it.
 
 This project is unofficial and is not affiliated with Blink or Amazon. Live
 View and aggressive polling can increase battery use, load Blink's service,
@@ -96,7 +98,7 @@ python scripts/check_public_tree.py
 ```
 
 The checks do not contact Blink, start Live View, or validate real cameras.
-A private end-to-end trial is still required before any release.
+The v0.1.0 release also includes the Blink Mini end-to-end validation described above.
 
 ## Optional camera speaker playback
 
