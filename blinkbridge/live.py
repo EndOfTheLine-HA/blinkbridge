@@ -240,7 +240,9 @@ class LiveStreamServer:
     async def _session(self) -> tuple:
         '''
         Run Blink live view into ffmpeg until a session ends without a handover. Returns (seconds,
-        bytes received) of that last session.
+        bytes received, sessions) for the whole chain of handed-over sessions. Timing only the last
+        session made every healthy chain look short (it ends about 60 s after the handover), so
+        each renewal counted as half a failure and live view fell back to clips after ~70 min.
         For cameras in cameras.live_handover the next session is opened
         cameras.live_handover_after seconds into the current one (Blink ends them after about
         6 min), and the stream switches to it as soon as it delivers video. Renewing only after
@@ -248,6 +250,9 @@ class LiveStreamServer:
         empty sessions until then.
         '''
         s = await self._open()
+        chain_started = s.started
+        earlier_received = 0
+        sessions = 1
         handover = None
         tried = False
         last_video = datetime.now()
@@ -262,6 +267,8 @@ class LiveStreamServer:
                     else:
                         seconds = (datetime.now() - s.started).total_seconds()
                         log.info(f"{self.stream_name}: handed over to the next live view session after {seconds:.0f} s ({s.received / 1e6:.1f} MB)")
+                        earlier_received += s.received
+                        sessions += 1
                         self._close(s)
                         s, handover, tried = new, None, False
                         await self._feed(s, chunk)
@@ -296,7 +303,7 @@ class LiveStreamServer:
             self._close(s)
             if handover is not None:
                 handover.cancel()
-        return (datetime.now() - s.started).total_seconds(), s.received
+        return (datetime.now() - chain_started).total_seconds(), earlier_received + s.received, sessions
 
     async def _finish_feed(self, feed) -> None:
         try:
@@ -311,8 +318,9 @@ class LiveStreamServer:
         try:
             while True:
                 try:
-                    seconds, received = await self._session()
-                    log.info(f"{self.stream_name}: live view session ended after {seconds:.0f} s ({received / 1e6:.1f} MB)")
+                    seconds, received, sessions = await self._session()
+                    chain = f", {sessions} sessions" if sessions > 1 else ""
+                    log.info(f"{self.stream_name}: live view ended after {seconds:.0f} s ({received / 1e6:.1f} MB{chain})")
                     ok = received >= 50_000
                 except asyncio.CancelledError:
                     raise
